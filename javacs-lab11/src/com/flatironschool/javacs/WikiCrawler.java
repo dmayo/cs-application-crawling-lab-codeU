@@ -54,8 +54,30 @@ public class WikiCrawler {
 	 * @throws IOException
 	 */
 	public String crawl(boolean testing) throws IOException {
-        // FILL THIS IN!
-		return null;
+        if(queue.isEmpty()){
+        	return null;
+        }
+
+		//get first element in the queue
+        String currentURL = queue.poll();
+
+        //don't refresh index if testing is false
+        if(testing==false && index.isIndexed(currentURL)){
+        	return null;
+        }
+
+        Elements paragraphs;
+        if(testing==true){
+        	paragraphs = wf.readWikipedia(currentURL);
+        }
+        else{
+        	paragraphs = wf.fetchWikipedia(currentURL);
+        }
+        index.indexPage(currentURL,paragraphs);
+
+        //add current pages links to queue
+        queueInternalLinks(paragraphs);
+		return currentURL;
 	}
 	
 	/**
@@ -65,7 +87,26 @@ public class WikiCrawler {
 	 */
 	// NOTE: absence of access level modifier means package-level
 	void queueInternalLinks(Elements paragraphs) {
-        // FILL THIS IN!
+        for(Element paragraph: paragraphs){
+        	queueParagraphInternalLinks(paragraph);
+        }
+	}
+
+	/**
+	* add internal links in a paragraph to the queue
+	* @param paragraph
+	*/
+	private void queueParagraphInternalLinks(Element paragraph){
+		Elements links = paragraph.select("a[href]");
+		for(Element link: links){
+			String linkURL = link.attr("href");
+
+			//only queue wikipedia links
+			if (linkURL.startsWith("/wiki/")) {
+				String fullURL = "https://en.wikipedia.org" + linkURL;
+				queue.offer(fullURL);
+			}
+		}
 	}
 
 	public static void main(String[] args) throws IOException {
